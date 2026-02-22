@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Bestie Memory Match 💖</title>
+    <style>
+        :root{
+            --bg:#0f1020;
+            --text:#f7f2ff;
+            --muted: rgba(247,242,255,0.72);
+            --radius: 18px;
+            --shadow: 0 12px 40px rgba(0,0,0,0.28);
+            --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+        }
+
+        *{box-sizing:border-box}
+
+        body{
+            margin:0;
+            font-family:var(--font);
+            color:var(--text);
+            background:
+                radial-gradient(900px 700px at 20% 10%, rgba(255,123,191,0.25), transparent 60%),
+                radial-gradient(800px 600px at 80% 20%, rgba(155,240,255,0.20), transparent 55%),
+                var(--bg);
+            min-height:100svh; /* better for iPhone */
+            padding:16px;
+        }
+
+        /* ---------- LAYOUT ---------- */
+
+        .wrap{
+            width:100%;
+            max-width:520px;   /* perfect width for iPhone */
+            margin:0 auto;
+        }
+
+        .top{
+            display:flex;
+            flex-direction:column;   /* stacked on mobile */
+            gap:12px;
+            margin-bottom:18px;
+        }
+
+        .title h1{
+            margin:0;
+            font-size:1.6rem;
+        }
+
+        .title p{
+            margin:6px 0 0;
+            font-size:0.95rem;
+            color:var(--muted);
+        }
+
+        /* ---------- HUD ---------- */
+
+        .hud{
+            display:flex;
+            flex-wrap:wrap;
+            gap:8px;
+        }
+
+        .pill{
+            flex:1;
+            text-align:center;
+            padding:12px;
+            border-radius:999px;
+            background: rgba(255,255,255,0.08);
+            border:1px solid rgba(255,255,255,0.15);
+            font-weight:800;
+            font-size:0.9rem;
+        }
+
+        .btn{
+            width:100%;
+            padding:14px;
+            border-radius:999px;
+            font-weight:900;
+            font-size:1rem;
+            border:1px solid rgba(255,255,255,0.2);
+            background: linear-gradient(135deg, rgba(255,123,191,0.35), rgba(155,240,255,0.25));
+        }
+
+        /* ---------- GAME GRID ---------- */
+
+        .game{
+            display:flex;
+            flex-direction:column;
+            gap:16px;
+        }
+
+        .board{
+            display:grid;
+            grid-template-columns: repeat(4, 1fr); /* 4x4 grid */
+            gap:10px;
+            padding:12px;
+            border-radius: var(--radius);
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: var(--shadow);
+        }
+
+        /* ---------- CARDS ---------- */
+
+        .card{
+            position:relative;
+            aspect-ratio:1/1;
+            border-radius:14px;
+            transform-style: preserve-3d;
+            transition: transform 200ms ease;
+            cursor:pointer;
+        }
+
+        .card.flip{ transform: rotateY(180deg); }
+
+        .face{
+            position:absolute;
+            inset:0;
+            border-radius:14px;
+            overflow:hidden;
+            backface-visibility:hidden;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            border:1px solid rgba(255,255,255,0.15);
+        }
+
+        .back{
+            background: rgba(255,255,255,0.1);
+            font-size:1.6rem;
+        }
+
+        .front{
+            transform: rotateY(180deg);
+            background: rgba(255,255,255,0.08);
+        }
+
+        .front img{
+            width:100%;
+            height:100%;
+            object-fit:cover;
+        }
+
+        .front .label{
+            position:absolute;
+            bottom:0;
+            left:0;
+            right:0;
+            padding:6px;
+            font-size:0.75rem;
+            font-weight:800;
+            text-align:center;
+            background: rgba(0,0,0,0.35);
+        }
+
+        /* ---------- MATCHED SECTION ---------- */
+
+        .matched{
+            padding:12px;
+            border-radius: var(--radius);
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+
+        .matched-grid{
+            display:grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap:8px;
+            margin-top:10px;
+        }
+
+        .mini{
+            aspect-ratio:1/1;
+            border-radius:10px;
+            overflow:hidden;
+            background: rgba(255,255,255,0.08);
+        }
+
+        .mini img{
+            width:100%;
+            height:100%;
+            object-fit:cover;
+        }
+
+        /* ---------- MODAL ---------- */
+
+        .modal{
+            width:92vw;
+            max-width:420px;
+            border-radius:18px;
+            background: rgba(20,20,40,0.95);
+            padding:20px;
+        }
+
+        .modal h2{
+            margin:0 0 8px;
+            font-size:1.4rem;
+        }
+
+        .modal p{
+            font-size:0.95rem;
+            line-height:1.4;
+        }
+
+        .modal .row{
+            display:flex;
+            gap:10px;
+            margin-top:14px;
+        }
+
+        .modal .btn2{
+            flex:1;
+            padding:12px;
+            border-radius:999px;
+            font-weight:800;
+            border:1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.1);
+        }
+
+        .modal .btn2.primary{
+            background: linear-gradient(135deg, rgba(255,123,191,0.35), rgba(155,240,255,0.25));
+        }
+    </style>
+</head>
+
+<body>
+<canvas id="confetti"></canvas>
+
+<div class="wrap">
+    <div class="top">
+        <div class="title">
+            <h1 id="headline">Memory Match 💖</h1>
+            <p id="subhead">Finde alle Paare.</p>
+        </div>
+
+        <div class="hud">
+            <div class="pill">Moves: <span id="moves">0</span></div>
+            <div class="pill">Pairs: <span id="pairs">0</span>/<span id="totalPairs">0</span></div>
+            <button class="btn" id="restart">Shuffle & Restart</button>
+        </div>
+    </div>
+
+
+    <div class="game">
+        <div class="board" id="board" aria-label="Memory game board"></div>
+
+        <aside class="matched cardbox" aria-label="Matched pairs">
+            <div class="matched-head">
+                <div class="matched-title">Matched 💖</div>
+                <div class="matched-sub" id="matchedHint">Gefundene Paare.</div>
+            </div>
+
+            <div class="matched-grid" id="matchedGrid"></div>
+        </aside>
+    </div>
+
+</div>
+
+<dialog id="winDialog">
+    <div class="modal">
+        <h2>YOU DID IT 🎉</h2>
+        <p id="winText">You found all the pairs!</p>
+        <div class="row">
+            <button class="btn2" id="closeWin">Close</button>
+            <button class="btn2 primary" id="playAgain">Play again</button>
+        </div>
+    </div>
+</dialog>
+
+<script>
+    // =========================
+    // PERSONALIZE HERE ✨
+    // =========================
+    const CONFIG = {
+        title: "Bestie Memory Match 💖",
+        subtitle: "Match the memories.",
+        // Use "image" cards OR "text" cards:
+        mode: "image", // "image" or "text"
+
+        // For mode: "image"
+        // Put 2 cards per pair (can be same image duplicated).
+        pairs: [
+            { id: "1", front: { img: "1a.jpg", label: "Munich shopping" }, match: { img: "1b.jpg", label: "Munich shopping" } },
+            { id: "2", front: { img: "2a.jpg", label: "Hamburgi" },   match: { img: "2b.jpg", label: "Hamburgi" } },
+            { id: "3", front: { img: "3a.jpg", label: "Munich girls" },  match: { img: "3b.jpg", label: "Munich girls" } },
+            { id: "4", front: { img: "4a.jpg", label: "Hamburg chayas" },     match: { img: "4b.jpg", label: "Hamburg chayas" } },
+            { id: "5", front: { img: "5a.jpg", label: "Party Party" },    match: { img: "5b.jpg", label: "Party Party" } },
+            { id: "6", front: { img: "6a.jpg", label: "drip" },    match: { img: "6b.jpg", label: "drip" } },
+            { id: "7", front: { img: "7a.jpg", label: "frühe Jahre" },  match: { img: "7b.jpg", label: "frühe Jahre" } },
+            { id: "8", front: { img: "8a.jpg", label: "DATE NIGHT" }, match: { img: "8b.jpg", label: "DATE NIGHT" } },
+        ],
+
+        // For mode: "text" (optional alternative)
+        // textPairs: [
+        //   { id:"a", a:"🍓", b:"🍓" },
+        //   { id:"b", a:"✨", b:"✨" },
+        //   { id:"c", a:"🧋", b:"🧋" },
+        //   { id:"d", a:"🎧", b:"🎧" },
+        //   { id:"e", a:"💅", b:"💅" },
+        //   { id:"f", a:"🫶", b:"🫶" },
+        //   { id:"g", a:"🎂", b:"🎂" },
+        //   { id:"h", a:"🌙", b:"🌙" },
+        // ],
+    };
+
+    // =========================
+    // GAME LOGIC
+    // =========================
+    const board = document.getElementById("board");
+    const movesEl = document.getElementById("moves");
+    const pairsEl = document.getElementById("pairs");
+    const totalPairsEl = document.getElementById("totalPairs");
+    const headline = document.getElementById("headline");
+    const subhead = document.getElementById("subhead");
+    const matchedGrid = document.getElementById("matchedGrid");
+
+    headline.textContent = CONFIG.title;
+    subhead.textContent = CONFIG.subtitle;
+
+    let deck = [];
+    let flipped = []; // store indices
+    let lock = false;
+    let moves = 0;
+    let matchedPairs = 0;
+
+    function shuffle(arr){
+        for(let i=arr.length-1; i>0; i--){
+            const j = Math.floor(Math.random() * (i+1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    function buildDeck(){
+        if(CONFIG.mode === "text"){
+            // If you switch to text mode, uncomment CONFIG.textPairs above
+            if(!CONFIG.textPairs) throw new Error("CONFIG.textPairs is missing for text mode.");
+            return CONFIG.textPairs.flatMap(p => ([
+                { pairId: p.id, type:"text", value: p.a },
+                { pairId: p.id, type:"text", value: p.b }
+            ]));
+        }
+
+        // image mode
+        return CONFIG.pairs.flatMap(p => ([
+            { pairId: p.id, type:"image", img: p.front.img, label: p.front.label },
+            { pairId: p.id, type:"image", img: p.match.img, label: p.match.label }
+        ]));
+    }
+
+    function resetState(){
+        deck = shuffle(buildDeck());
+        flipped = [];
+        lock = false;
+        moves = 0;
+        matchedPairs = 0;
+        movesEl.textContent = moves;
+        pairsEl.textContent = matchedPairs;
+        totalPairsEl.textContent = (deck.length / 2);
+        matchedGrid.innerHTML = "";
+    }
+
+    function render(){
+        board.innerHTML = "";
+        deck.forEach((card, idx) => {
+            const el = document.createElement("button");
+            el.className = "card";
+            el.type = "button";
+            el.setAttribute("aria-label", "Card");
+
+            el.innerHTML = `
+          <div class="face back">✨</div>
+          <div class="face front">
+            ${card.type === "image"
+                ? `<img src="${card.img}" alt="${card.label ?? "memory"}" />
+                 ${card.label ? `<div class="label">${escapeHtml(card.label)}</div>` : ""}`
+                : `<div style="font-size:2.2rem;font-weight:900;">${escapeHtml(card.value)}</div>`
+            }
+          </div>
+        `;
+
+            el.addEventListener("click", () => onFlip(idx, el));
+            board.appendChild(el);
+        });
+    }
+
+    function escapeHtml(str){
+        return String(str)
+            .replaceAll("&","&amp;")
+            .replaceAll("<","&lt;")
+            .replaceAll(">","&gt;");
+    }
+
+    function onFlip(idx, el){
+        if(lock) return;
+        if(el.classList.contains("matched")) return;
+        if(flipped.includes(idx)) return;
+
+        el.classList.add("flip");
+        flipped.push(idx);
+
+        if(flipped.length === 2){
+            moves++;
+            movesEl.textContent = moves;
+            checkMatch();
+        }
+    }
+
+    function checkMatch(){
+        lock = true;
+        const [i1, i2] = flipped;
+        const c1 = deck[i1];
+        const c2 = deck[i2];
+        const cards = board.querySelectorAll(".card");
+        const e1 = cards[i1];
+        const e2 = cards[i2];
+
+        const isMatch = c1.pairId === c2.pairId;
+
+        setTimeout(() => {
+            if(isMatch){
+                e1.classList.add("matched");
+                e2.classList.add("matched");
+
+                addToMatchedTray(c1);
+                addToMatchedTray(c2);
+
+                e1.classList.add("gone");
+                e2.classList.add("gone");
+
+                matchedPairs++;
+                pairsEl.textContent = matchedPairs;
+
+                if(matchedPairs === deck.length / 2){
+                    win();
+                }
+            } else {
+                e1.classList.remove("flip");
+                e2.classList.remove("flip");
+            }
+
+            flipped = [];
+            lock = false;
+        }, isMatch ? 350 : 650);
+    }
+
+
+    // =========================
+    // WIN + CONFETTI
+    // =========================
+    const winDialog = document.getElementById("winDialog");
+    const winText = document.getElementById("winText");
+    document.getElementById("restart").addEventListener("click", start);
+    document.getElementById("playAgain").addEventListener("click", () => {
+        winDialog.close();
+        start();
+    });
+    document.getElementById("closeWin").addEventListener("click", () => winDialog.close());
+
+    function win(){
+        winText.textContent = `Alles Liebe zum Geburtstag, Freundchen 💕Ich hoffe, dein Tag ist genauso wunderschön wie du! Ich freu mich so sehr, dich bald in München zu sehen :)) es wird höchste Zeit für neue Erinnerungen. Wir haben schon so viel zusammen erlebt, und ich bin so dankbar dich zu kennen. Hab einen ganz wunderbaren Tag!`;
+        winDialog.showModal();
+        burstConfetti();
+    }
+
+    // simple confetti (no libraries)
+    const canvas = document.getElementById("confetti");
+    const ctx = canvas.getContext("2d");
+    let confetti = [];
+    let confettiOn = false;
+
+    function resize(){
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    function burstConfetti(){
+        confettiOn = true;
+        confetti = Array.from({length: 220}).map(() => ({
+            x: Math.random()*canvas.width,
+            y: -20 - Math.random()*120,
+            vx: -1 + Math.random()*2,
+            vy: 2 + Math.random()*5,
+            w: 6 + Math.random()*10,
+            h: 6 + Math.random()*12,
+            rot: Math.random()*Math.PI,
+            vr: -0.08 + Math.random()*0.16
+        }));
+        requestAnimationFrame(drawConfetti);
+    }
+
+    function drawConfetti(){
+        if(!confettiOn) return;
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+
+        confetti.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.rot += p.vr;
+
+            const hue = (p.x / canvas.width) * 360;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            ctx.fillStyle = `hsl(${hue}, 92%, 70%)`;
+            ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+            ctx.restore();
+        });
+
+        confetti = confetti.filter(p => p.y < canvas.height + 40);
+        if(confetti.length === 0){
+            confettiOn = false;
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            return;
+        }
+        requestAnimationFrame(drawConfetti);
+    }
+
+    function start(){
+        resetState();
+        render();
+    }
+
+    start();
+
+    function addToMatchedTray(card){
+        const mini = document.createElement("div");
+        mini.className = "mini";
+
+        if(card.type === "image"){
+            mini.innerHTML = `
+      <img src="${card.img}" alt="${escapeHtml(card.label ?? "match")}" />
+      ${card.label ? `<div class="mini-label">${escapeHtml(card.label)}</div>` : ""}
+    `;
+        } else {
+            mini.style.display = "flex";
+            mini.style.alignItems = "center";
+            mini.style.justifyContent = "center";
+            mini.style.fontSize = "2rem";
+            mini.style.fontWeight = "900";
+            mini.textContent = card.value;
+        }
+
+        matchedGrid.appendChild(mini);
+    }
+
+
+</script>
+</body>
+</html>
